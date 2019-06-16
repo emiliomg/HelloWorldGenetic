@@ -1,12 +1,13 @@
 package emiliomg.genetic
 
-import scala.annotation.tailrec
 import emiliomg.genetic.util.Hamming.HammingComparable
 
+import scala.annotation.tailrec
 import scala.util.Random
 
 trait Incubator {
   val target: String
+
   def run(startsWith: String): Unit
 }
 
@@ -25,7 +26,7 @@ class DefaultIncubator(val target: String) extends Incubator {
 
   // configuration variables
   val generationSize: Int = 10
-  val numFittestToReproduce = 2
+  val numFittestToReproduce = 1
   val mutationProbability = 0.1
 
   require(generationSize > numFittestToReproduce, "number of fittest elements to take for reproduction must be smaller than whole generation")
@@ -53,19 +54,19 @@ class DefaultIncubator(val target: String) extends Incubator {
   }
 }
 
-case class Generation(gen: Array[String], fitness: (String, String) ⇒ Boolean) {
+case class Generation(gen: Array[String], fitness: (String, String) => Boolean) {
 
   def takeFittest(take: Int): Generation = this.copy(gen = gen.take(take))
 
   def breed(targetSize: Int): Generation = {
-    val newChildren = (gen.length until targetSize).map{ i ⇒
+    val newChildren = (gen.length until targetSize).map { i =>
       val parentAIdx = i % gen.length
       val parentBIdx = (parentAIdx + 1) % gen.length
 
       val child = gen(parentAIdx).map(Option.apply)
         .zipAll(gen(parentBIdx).map(Option.apply), None, None)
         .flatMap {
-          case (a, b) ⇒ if (Random.nextBoolean()) a else b
+          case (a, b) => if (Random.nextBoolean()) a else b
         }
         .mkString
 
@@ -77,15 +78,15 @@ case class Generation(gen: Array[String], fitness: (String, String) ⇒ Boolean)
 
   def mutate(excludeFirst: Int, probability: Double): Generation = {
     val protectedChildren = gen.take(excludeFirst)
-    val mutatedChildren = gen.drop(excludeFirst).map { child: String ⇒
-      val childWithMaybeLessChars = child.map { c ⇒
+    val mutatedChildren = gen.drop(excludeFirst).map { child: String =>
+      val childWithMaybeLessChars = child.map { c: Char =>
         if (Random.nextDouble() < probability) {
           if (Random.nextBoolean()) Some(Random.nextPrintableChar())
           else None
         }
         else Some(c)
       }
-      val maybeMoreChars = (0 to Random.nextInt(5)).map { _ ⇒
+      val maybeMoreChars = (0 to Random.nextInt(5)).map { _ =>
         if (Random.nextDouble() < probability) Some(Random.nextPrintableChar())
         else None
       }
@@ -100,7 +101,7 @@ case class Generation(gen: Array[String], fitness: (String, String) ⇒ Boolean)
 
   def log(description: String): Generation = {
     print(s"Logging Generation '$description': ")
-    gen.foreach(x ⇒ print(x + ", "))
+    gen.foreach(x => print(x + ", "))
     print('\n')
     this
   }
@@ -109,6 +110,7 @@ case class Generation(gen: Array[String], fitness: (String, String) ⇒ Boolean)
 }
 
 object Generation {
-  def apply(generationSize: Int, startWith: String, fitness: (String, String) ⇒ Boolean) = new Generation(Array.fill(generationSize)(startWith), fitness)
-  def apply(gen: Array[String], fitness: (String, String) ⇒ Boolean) = new Generation(gen, fitness)
+  def apply(generationSize: Int, startWith: String, fitness: (String, String) => Boolean) = new Generation(Array.fill(generationSize)(startWith), fitness)
+
+  def apply(gen: Array[String], fitness: (String, String) => Boolean) = new Generation(gen, fitness)
 }
